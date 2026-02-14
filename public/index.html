@@ -318,7 +318,7 @@
   socket.on('connect', () => connectionStatus.classList.remove('show'));
   socket.on('disconnect', () => connectionStatus.classList.add('show'));
   socket.on('bubble:existing', b => createBubble(b));
-  socket.on('bubble:new', b => { createBubble(b); cooldownEndTime = Date.now() + 300000; });
+  socket.on('bubble:new', b => { createBubble(b); });
   socket.on('bubble:cooldown', d => showCooldown(d.remainingSeconds * 1000));
   socket.on('bubble:error', d => console.error('Server error:', d.message));
   socket.on('users:count', c => { userCountEl.textContent = c; });
@@ -441,6 +441,9 @@
       type: selectedType
     });
     closeCompose();
+    // Start cooldown only after YOUR message
+    cooldownEndTime = Date.now() + 300000;
+    showCooldown(300000);
   }
 
   // ─── BUBBLES ───

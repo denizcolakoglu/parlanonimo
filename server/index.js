@@ -210,68 +210,91 @@ server.listen(PORT, () => {
 const seedData = [
   // ── PARIS (French) ──
   { name: 'Flaneur', text: 'La vue depuis le Sacre-Coeur au coucher du soleil, rien ne la bat', x: 48.8867, y: 2.3431, type: 'speech' },
-  { name: 'Amelie', text: 'Meilleur croissant de Paris? La petite boulangerie rue des Martyrs', x: 48.8782, y: 2.3387, type: 'speech' },
-  { name: 'Noctis', text: 'Je crois que la Seine est plus belle a 3h du matin...', x: 48.8566, y: 2.3522, type: 'thought' },
-  { name: 'Voltaire', text: 'Je viens de voir une demande en mariage sur le Pont des Arts. Elle a dit oui!', x: 48.8583, y: 2.3374, type: 'speech' },
-  { name: 'Lumiere', text: 'Oubliez le Louvre, allez au Musee d Orsay. Vous me remercierez.', x: 48.8600, y: 2.3266, type: 'speech' },
+  { name: 'Amelie', text: 'Meilleur croissant de Paris? Rue des Martyrs', x: 48.8782, y: 2.3387, type: 'speech' },
+  { name: 'Noctis', text: 'La Seine est plus belle a 3h du matin...', x: 48.8566, y: 2.3522, type: 'thought' },
+  { name: 'Voltaire', text: 'Demande en mariage sur le Pont des Arts. Elle a dit oui!', x: 48.8583, y: 2.3374, type: 'speech' },
+  { name: 'Lumiere', text: 'Oubliez le Louvre, allez au Musee d Orsay', x: 48.8600, y: 2.3266, type: 'speech' },
   { name: 'Reve', text: 'Et si Paris etait un sentiment plutot qu un endroit?', x: 48.8530, y: 2.3499, type: 'thought' },
-  { name: 'Minuit', text: 'Le bar jazz cache derriere la porte rouge dans le Marais... inoubliable', x: 48.8598, y: 2.3624, type: 'speech' },
+  { name: 'Minuit', text: 'Le bar jazz cache dans le Marais... inoubliable', x: 48.8598, y: 2.3624, type: 'speech' },
   { name: 'Ciel', text: 'Je viens sur ce banc chaque mardi. Personne ne le sait.', x: 48.8462, y: 2.3372, type: 'thought' },
+  { name: 'Etoile', text: 'Les macarons de Pierre Herme valent chaque centime', x: 48.8493, y: 2.3280, type: 'speech' },
+  { name: 'Brume', text: 'Le canal Saint-Martin un dimanche matin, c est la paix', x: 48.8712, y: 2.3660, type: 'speech' },
+  { name: 'Vent', text: 'Quelqu un connait le speakeasy rue Oberkampf?', x: 48.8649, y: 2.3790, type: 'speech' },
+  { name: 'Aurore', text: 'Le marche aux puces de Clignancourt est un tresor', x: 48.8990, y: 2.3452, type: 'speech' },
+  { name: 'Plume', text: 'J ai pleure devant le Moulin Rouge. Trop de souvenirs.', x: 48.8841, y: 2.3323, type: 'thought' },
+  { name: 'Nuage', text: 'Le meilleur falafel? Rue des Rosiers, sans discussion', x: 48.8574, y: 2.3584, type: 'speech' },
+  { name: 'Seine', text: 'Paris la nuit depuis la Tour Eiffel. Magique.', x: 48.8584, y: 2.2945, type: 'thought' },
+  { name: 'Loup', text: 'Les bouquinistes des quais vendent des tresors caches', x: 48.8530, y: 2.3440, type: 'speech' },
 
   // ── BERLIN (English) ──
-  { name: 'Wanderer', text: 'The street art in Kreuzberg keeps getting better every week', x: 52.4988, y: 13.4200, type: 'speech' },
-  { name: 'Nacht', text: 'Does anyone else feel like Berlin never truly sleeps?', x: 52.5200, y: 13.4050, type: 'thought' },
-  { name: 'Spree', text: 'Curry 36 is overrated. The real currywurst is at Konnopke.', x: 52.5390, y: 13.4133, type: 'speech' },
-  { name: 'Klang', text: 'Heard the most incredible busker at Warschauer today', x: 52.5057, y: 13.4490, type: 'speech' },
-  { name: 'Mauer', text: 'The East Side Gallery still gives me chills every time', x: 52.5053, y: 13.4396, type: 'thought' },
-  { name: 'Fuchs', text: 'Secret rooftop bar on Torstrasse. No sign. Best view of TV tower.', x: 52.5290, y: 13.3958, type: 'speech' },
-  { name: 'Nebel', text: 'Moved here 5 years ago. Still discovering new neighborhoods.', x: 52.4870, y: 13.4250, type: 'thought' },
-  { name: 'Baer', text: 'Free piano in Mauerpark on Sundays. Just show up and play.', x: 52.5437, y: 13.4019, type: 'speech' },
+  { name: 'Wanderer', text: 'The street art in Kreuzberg gets better every week', x: 52.4988, y: 13.4200, type: 'speech' },
+  { name: 'Nacht', text: 'Does anyone else feel like Berlin never sleeps?', x: 52.5200, y: 13.4050, type: 'thought' },
+  { name: 'Spree', text: 'The real currywurst is at Konnopke. Period.', x: 52.5390, y: 13.4133, type: 'speech' },
+  { name: 'Klang', text: 'Incredible busker at Warschauer today', x: 52.5057, y: 13.4490, type: 'speech' },
+  { name: 'Mauer', text: 'East Side Gallery still gives me chills', x: 52.5053, y: 13.4396, type: 'thought' },
+  { name: 'Fuchs', text: 'Secret rooftop on Torstrasse. No sign. Best view.', x: 52.5290, y: 13.3958, type: 'speech' },
+  { name: 'Nebel', text: '5 years here. Still discovering new neighborhoods.', x: 52.4870, y: 13.4250, type: 'thought' },
+  { name: 'Baer', text: 'Free piano in Mauerpark on Sundays. Pure magic.', x: 52.5437, y: 13.4019, type: 'speech' },
+  { name: 'Pixel', text: 'The doner at Mustafa is worth the 40 minute queue', x: 52.4897, y: 13.3880, type: 'speech' },
+  { name: 'Volt', text: 'Tempelhof at sunset. Bring a beer. Thank me later.', x: 52.4730, y: 13.4010, type: 'speech' },
+  { name: 'Echo', text: 'The flea market at Boxhagener Platz is underrated', x: 52.5110, y: 13.4580, type: 'speech' },
+  { name: 'Storm', text: 'Berghain rejected me again but honestly the park is better', x: 52.5113, y: 13.4428, type: 'speech' },
+  { name: 'Glitch', text: 'Anyone else addicted to the Vietnamese food in Dong Xuan?', x: 52.5480, y: 13.4320, type: 'speech' },
+  { name: 'Drift', text: 'Tegel is gone but the memories remain', x: 52.5210, y: 13.3870, type: 'thought' },
+  { name: 'Blitz', text: 'The bookshops on Oranienstrasse are disappearing', x: 52.5010, y: 13.4200, type: 'thought' },
+  { name: 'Fern', text: 'Gorlitzer Park at dawn. Just me and the birds.', x: 52.4970, y: 13.4370, type: 'thought' },
 
   // ── MILAN (Italian) ──
   { name: 'Peppe', text: 'Ti amo Marco', x: 45.4641, y: 9.1919, type: 'speech' },
   { name: 'Salvatore', text: 'Inter e\' merda', x: 45.4780, y: 9.2040, type: 'speech' },
   { name: 'hippo', text: 'Dove si mangia il miglior risotto?', x: 45.4530, y: 9.1770, type: 'speech' },
-  { name: 'Ombra', text: 'L\'aperitivo ai Navigli il venerdi sera e\' la miglior terapia', x: 45.4510, y: 9.1740, type: 'speech' },
-  { name: 'Nebbia', text: 'Milano e\' la citta piu sottovalutata d\'Europa. Davvero.', x: 45.4642, y: 9.1900, type: 'thought' },
-  { name: 'Freccia', text: 'Il miglior gelato di Milano NON e\' dove vanno i turisti', x: 45.4510, y: 9.1660, type: 'speech' },
-  { name: 'Silenzio', text: 'A volte mi siedo alla Biblioteca Ambrosiana solo per pensare', x: 45.4634, y: 9.1870, type: 'thought' },
-  { name: 'Sole', text: 'Primavera a Parco Sempione: Milano diventa un\'altra citta', x: 45.4726, y: 9.1788, type: 'speech' },
+  { name: 'Ombra', text: 'L\'aperitivo ai Navigli il venerdi sera e\' terapia', x: 45.4510, y: 9.1740, type: 'speech' },
+  { name: 'Nebbia', text: 'Milano e\' la citta piu sottovalutata d\'Europa', x: 45.4642, y: 9.1900, type: 'thought' },
+  { name: 'Freccia', text: 'Il miglior gelato NON e\' dove vanno i turisti', x: 45.4510, y: 9.1660, type: 'speech' },
+  { name: 'Silenzio', text: 'Mi siedo alla Biblioteca Ambrosiana solo per pensare', x: 45.4634, y: 9.1870, type: 'thought' },
+  { name: 'Sole', text: 'Primavera a Parco Sempione: un\'altra citta', x: 45.4726, y: 9.1788, type: 'speech' },
+  { name: 'Rosso', text: 'Il tramonto dal Bosco Verticale e\' poesia', x: 45.4786, y: 9.1902, type: 'thought' },
+  { name: 'Vespa', text: 'La focaccia di Princi alle 7 di mattina. Paradiso.', x: 45.4670, y: 9.1850, type: 'speech' },
+  { name: 'Fumo', text: 'Chi conosce il bar segreto dietro Colonne di San Lorenzo?', x: 45.4590, y: 9.1820, type: 'speech' },
+  { name: 'Dario', text: 'Forza Milan! Stasera si vince', x: 45.4780, y: 9.2050, type: 'speech' },
+  { name: 'Stella', text: 'La Pinacoteca di Brera merita piu visite del Duomo', x: 45.4720, y: 9.1880, type: 'speech' },
+  { name: 'Grigio', text: 'Milano sotto la pioggia ha un fascino unico', x: 45.4650, y: 9.1930, type: 'thought' },
+  { name: 'Notte', text: 'Il Mercato Centrale in Stazione Centrale... che scoperta', x: 45.4860, y: 9.2040, type: 'speech' },
+  { name: 'Fiore', text: 'I giardini di Via Palestro sono il mio rifugio segreto', x: 45.4730, y: 9.1970, type: 'thought' },
 ];
 
 async function seedMessages() {
   try {
-    // Check how many active bubbles exist
     const existingKeys = await redis.keys('bubble:*');
-    if (existingKeys.length >= 6) {
+    if (existingKeys.length >= 10) {
       console.log('Map has ' + existingKeys.length + ' active bubbles, skipping seed.');
     } else {
       console.log('Seeding map with sample messages...');
-      await plantBatch();
+      await plantBatch(true);
     }
-    // Check every 5 minutes, only plant if map is nearly empty
+    // Check every 5 minutes, only plant if map is getting empty
     setInterval(async () => {
       try {
         const keys = await redis.keys('bubble:*');
-        if (keys.length < 3) {
-          await plantBatch();
+        if (keys.length < 6) {
+          await plantBatch(false);
         }
       } catch (err) {
         console.error('Seed interval error:', err.message);
       }
-    }, 300000); // check every 5 minutes
+    }, 300000);
   } catch (err) {
     console.error('Seed error:', err.message);
   }
 }
 
-async function plantBatch() {
-  // Only plant 3-5 messages per batch (not 8-12) to keep it sparse and natural
+async function plantBatch(isInitial) {
+  // On initial load plant more (15-20), on refresh plant fewer (5-8)
   const shuffled = [...seedData].sort(() => Math.random() - 0.5);
-  const batch = shuffled.slice(0, 3 + Math.floor(Math.random() * 3));
+  const count = isInitial ? (15 + Math.floor(Math.random() * 6)) : (5 + Math.floor(Math.random() * 4));
+  const batch = shuffled.slice(0, count);
 
   for (const msg of batch) {
-    // Add slight random offset so they are not always in the exact same spot
     const jitterLat = (Math.random() - 0.5) * 0.008;
     const jitterLng = (Math.random() - 0.5) * 0.008;
 
@@ -285,11 +308,10 @@ async function plantBatch() {
       createdAt: Date.now()
     };
 
-    // Random TTL between 3-5 minutes so they stay longer and don't respawn fast
-    const ttl = 180 + Math.floor(Math.random() * 120);
+    // Stagger TTLs: 3-8 minutes so they don't all vanish at once
+    const ttl = 180 + Math.floor(Math.random() * 300);
     await redis.setEx('bubble:' + bubble.id, ttl, JSON.stringify(bubble));
 
-    // Broadcast to any connected users
     bubble.remainingMs = ttl * 1000;
     io.emit('bubble:new', bubble);
   }
