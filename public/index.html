@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Parlanonimo — Anonymous Map Messages</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <style>
   :root {
     --bg-dark: #1a1a2e;
-    --bg-panel: #16213e;
     --accent-pink: #ff6b9d;
     --accent-yellow: #ffd93d;
     --accent-blue: #6ec6ff;
@@ -17,8 +18,8 @@
     --accent-purple: #c56bff;
     --text-light: #e8e8f0;
     --text-muted: #8888aa;
-    --glass: rgba(22, 33, 62, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass: rgba(22, 33, 62, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.1);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -28,6 +29,8 @@
     overflow: hidden;
     height: 100vh; width: 100vw;
   }
+
+  /* ─── NAME ENTRY ─── */
   #name-screen {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; align-items: center; justify-content: center;
@@ -71,80 +74,80 @@
   }
   .enter-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,107,157,0.5); }
   .enter-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  #map-container {
-    width: 100%; height: 100vh; position: relative; overflow: hidden;
-    cursor: grab; background: #0f0f23;
-    background-image:
-      radial-gradient(circle at 30% 40%, rgba(107,255,157,0.03) 0%, transparent 40%),
-      radial-gradient(circle at 70% 60%, rgba(255,107,157,0.03) 0%, transparent 40%);
+
+  /* ─── MAP ─── */
+  #map { width: 100%; height: 100vh; z-index: 1; background: #1a1a2e; }
+  .leaflet-control-zoom { display: none; }
+
+  /* ─── SPEECH BUBBLES ─── */
+  .bubble-popup .leaflet-popup-content-wrapper {
+    border-radius: 1.2rem !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    padding: 0 !important;
+    overflow: hidden;
   }
-  #map-container:active { cursor: grabbing; }
-  #map-world {
-    position: absolute; width: 4000px; height: 3000px;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
-    background-size: 40px 40px;
+  .bubble-popup .leaflet-popup-content { margin: 0 !important; width: auto !important; }
+  .bubble-popup .leaflet-popup-tip-container { display: none; }
+  .bubble-popup .leaflet-popup-close-button { display: none !important; }
+
+  .bubble-inner {
+    padding: 0.85rem 1.1rem;
+    min-width: 140px; max-width: 260px;
+    position: relative; overflow: hidden;
   }
-  .bubble {
-    position: absolute; max-width: 280px; min-width: 120px;
-    animation: bubble-appear 0.5s cubic-bezier(0.34,1.56,0.64,1);
-    z-index: 10; pointer-events: auto; transition: opacity 1s ease;
-  }
-  .bubble.fading { opacity: 0; }
-  @keyframes bubble-appear { from { opacity: 0; transform: scale(0.3) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-  .bubble-content {
-    padding: 0.9rem 1.15rem; border-radius: 1.2rem; position: relative;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); overflow: hidden;
-  }
-  .bubble-tail {
-    position: absolute; bottom: -10px; left: 20px; width: 0; height: 0;
-    border-left: 10px solid transparent; border-right: 10px solid transparent;
-  }
-  .bubble-name { font-family: 'Caveat', cursive; font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; opacity: 0.8; }
-  .bubble-text { font-size: 0.92rem; line-height: 1.45; word-break: break-word; }
-  .bubble-time { font-size: 0.7rem; opacity: 0.4; margin-top: 0.35rem; text-align: right; }
+  .bubble-name { font-family: 'Caveat', cursive; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.15rem; opacity: 0.85; }
+  .bubble-text { font-size: 0.9rem; line-height: 1.45; word-break: break-word; color: #e8e8f0; }
+  .bubble-time { font-size: 0.68rem; opacity: 0.35; margin-top: 0.3rem; text-align: right; color: #e8e8f0; }
   .bubble-timer-bar {
     position: absolute; bottom: 0; left: 0; height: 3px;
-    border-radius: 0 0 1.2rem 1.2rem; animation: timer-shrink linear forwards;
+    animation: timer-shrink linear forwards;
   }
   @keyframes timer-shrink { from { width: 100%; } to { width: 0%; } }
-  .bubble-theme-pink .bubble-content { background: rgba(255,107,157,0.15); }
-  .bubble-theme-pink .bubble-tail { border-top: 12px solid rgba(255,107,157,0.15); }
-  .bubble-theme-pink .bubble-name { color: var(--accent-pink); }
-  .bubble-theme-pink .bubble-timer-bar { background: var(--accent-pink); }
-  .bubble-theme-blue .bubble-content { background: rgba(110,198,255,0.15); }
-  .bubble-theme-blue .bubble-tail { border-top: 12px solid rgba(110,198,255,0.15); }
-  .bubble-theme-blue .bubble-name { color: var(--accent-blue); }
-  .bubble-theme-blue .bubble-timer-bar { background: var(--accent-blue); }
-  .bubble-theme-yellow .bubble-content { background: rgba(255,217,61,0.15); }
-  .bubble-theme-yellow .bubble-tail { border-top: 12px solid rgba(255,217,61,0.15); }
-  .bubble-theme-yellow .bubble-name { color: var(--accent-yellow); }
-  .bubble-theme-yellow .bubble-timer-bar { background: var(--accent-yellow); }
-  .bubble-theme-green .bubble-content { background: rgba(107,255,157,0.15); }
-  .bubble-theme-green .bubble-tail { border-top: 12px solid rgba(107,255,157,0.15); }
-  .bubble-theme-green .bubble-name { color: var(--accent-green); }
-  .bubble-theme-green .bubble-timer-bar { background: var(--accent-green); }
-  .bubble-theme-purple .bubble-content { background: rgba(197,107,255,0.15); }
-  .bubble-theme-purple .bubble-tail { border-top: 12px solid rgba(197,107,255,0.15); }
-  .bubble-theme-purple .bubble-name { color: var(--accent-purple); }
-  .bubble-theme-purple .bubble-timer-bar { background: var(--accent-purple); }
-  .bubble-thought .bubble-tail { display: none; }
-  .bubble-thought .bubble-content { border-radius: 1.5rem; }
-  .bubble-thought::after, .bubble-thought::before {
-    content: ''; position: absolute; border-radius: 50%; bottom: -8px; left: 22px; width: 12px; height: 12px;
+
+  .bubble-thought .leaflet-popup-content-wrapper { border-radius: 1.6rem !important; }
+
+  .theme-pink .leaflet-popup-content-wrapper { background: rgba(255,107,157,0.22) !important; }
+  .theme-pink .bubble-name { color: #ff6b9d; }
+  .theme-pink .bubble-timer-bar { background: #ff6b9d; }
+  .theme-blue .leaflet-popup-content-wrapper { background: rgba(110,198,255,0.22) !important; }
+  .theme-blue .bubble-name { color: #6ec6ff; }
+  .theme-blue .bubble-timer-bar { background: #6ec6ff; }
+  .theme-yellow .leaflet-popup-content-wrapper { background: rgba(255,217,61,0.22) !important; }
+  .theme-yellow .bubble-name { color: #ffd93d; }
+  .theme-yellow .bubble-timer-bar { background: #ffd93d; }
+  .theme-green .leaflet-popup-content-wrapper { background: rgba(107,255,157,0.22) !important; }
+  .theme-green .bubble-name { color: #6bff9d; }
+  .theme-green .bubble-timer-bar { background: #6bff9d; }
+  .theme-purple .leaflet-popup-content-wrapper { background: rgba(197,107,255,0.22) !important; }
+  .theme-purple .bubble-name { color: #c56bff; }
+  .theme-purple .bubble-timer-bar { background: #c56bff; }
+
+  /* ─── TOP BAR ─── */
+  #top-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1rem 1.25rem; pointer-events: none;
   }
-  .bubble-thought.bubble-theme-pink::after { background: rgba(255,107,157,0.15); }
-  .bubble-thought.bubble-theme-pink::before { background: rgba(255,107,157,0.12); width: 7px; height: 7px; bottom: -16px; left: 18px; }
-  .bubble-thought.bubble-theme-blue::after { background: rgba(110,198,255,0.15); }
-  .bubble-thought.bubble-theme-blue::before { background: rgba(110,198,255,0.12); width: 7px; height: 7px; bottom: -16px; left: 18px; }
-  .bubble-thought.bubble-theme-yellow::after { background: rgba(255,217,61,0.15); }
-  .bubble-thought.bubble-theme-yellow::before { background: rgba(255,217,61,0.12); width: 7px; height: 7px; bottom: -16px; left: 18px; }
-  .bubble-thought.bubble-theme-green::after { background: rgba(107,255,157,0.15); }
-  .bubble-thought.bubble-theme-green::before { background: rgba(107,255,157,0.12); width: 7px; height: 7px; bottom: -16px; left: 18px; }
-  .bubble-thought.bubble-theme-purple::after { background: rgba(197,107,255,0.15); }
-  .bubble-thought.bubble-theme-purple::before { background: rgba(197,107,255,0.12); width: 7px; height: 7px; bottom: -16px; left: 18px; }
+  #top-bar > * { pointer-events: auto; }
+  .top-brand {
+    display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 1rem;
+    background: var(--glass); border: 1px solid var(--glass-border); backdrop-filter: blur(20px);
+    font-weight: 600; font-size: 0.95rem;
+  }
+  .top-brand span { font-size: 1.2rem; }
+  .top-info { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .info-pill {
+    padding: 0.45rem 0.85rem; border-radius: 0.8rem; background: var(--glass);
+    border: 1px solid var(--glass-border); backdrop-filter: blur(20px); font-size: 0.8rem; color: var(--text-muted);
+  }
+  .info-pill .val { color: var(--accent-yellow); font-weight: 600; }
+  .info-pill .val-blue { color: var(--accent-blue); font-weight: 600; }
+
+  /* ─── COMPOSE ─── */
   #compose-panel {
     position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
-    z-index: 100; display: none; flex-direction: column; align-items: center; gap: 0.75rem;
+    z-index: 1000; display: none; flex-direction: column; align-items: center; gap: 0.75rem;
     animation: slide-up 0.4s ease;
   }
   #compose-panel.show { display: flex; }
@@ -158,7 +161,7 @@
     flex: 1; padding: 0.65rem 0.9rem; border-radius: 1rem;
     border: 1.5px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.04);
     color: var(--text-light); font-family: 'Fredoka', sans-serif; font-size: 0.95rem;
-    resize: none; outline: none; min-height: 42px; max-height: 100px; line-height: 1.4; transition: border-color 0.3s;
+    resize: none; outline: none; min-height: 42px; max-height: 100px; line-height: 1.4;
   }
   .compose-box textarea:focus { border-color: var(--accent-blue); }
   .compose-box textarea::placeholder { color: var(--text-muted); }
@@ -180,54 +183,24 @@
   }
   .send-btn:hover:not(:disabled) { transform: scale(1.08); box-shadow: 0 6px 24px rgba(255,107,157,0.5); }
   .send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-  #top-bar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 1rem 1.25rem; pointer-events: none;
-  }
-  #top-bar > * { pointer-events: auto; }
-  .top-brand {
-    display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 1rem;
-    background: var(--glass); border: 1px solid var(--glass-border); backdrop-filter: blur(20px);
-    font-weight: 600; font-size: 0.95rem;
-  }
-  .top-brand span { font-size: 1.2rem; }
-  .top-info { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-  .info-pill {
-    padding: 0.45rem 0.85rem; border-radius: 0.8rem; background: var(--glass);
-    border: 1px solid var(--glass-border); backdrop-filter: blur(20px); font-size: 0.8rem; color: var(--text-muted);
-  }
-  .info-pill .val { color: var(--accent-yellow); font-weight: 600; }
-  .info-pill .val-blue { color: var(--accent-blue); font-weight: 600; }
+
   .cooldown-notice {
     position: fixed; bottom: 6rem; left: 50%; transform: translateX(-50%);
     padding: 0.6rem 1.2rem; border-radius: 1rem;
     background: rgba(255,107,157,0.15); border: 1px solid rgba(255,107,157,0.2);
     backdrop-filter: blur(10px); font-size: 0.85rem; color: var(--accent-pink);
-    z-index: 150; display: none; animation: float-in 0.3s ease; white-space: nowrap;
+    z-index: 1100; display: none; white-space: nowrap;
   }
   .cooldown-notice.show { display: block; }
   .tap-hint {
-    position: fixed; bottom: 7rem; left: 50%; transform: translateX(-50%);
-    color: var(--text-muted); font-size: 0.85rem; z-index: 90;
+    position: fixed; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+    padding: 0.5rem 1.2rem; border-radius: 1rem;
+    background: var(--glass); border: 1px solid var(--glass-border); backdrop-filter: blur(20px);
+    color: var(--text-muted); font-size: 0.85rem; z-index: 900;
     animation: pulse-hint 3s ease infinite; pointer-events: none; white-space: nowrap;
   }
-  @keyframes pulse-hint { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  @keyframes pulse-hint { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
   .tap-hint.hidden { display: none; }
-  .landmark {
-    position: absolute; color: rgba(255,255,255,0.06); font-size: 0.75rem; font-weight: 600;
-    letter-spacing: 0.15em; text-transform: uppercase; pointer-events: none; white-space: nowrap;
-  }
-  #minimap {
-    position: fixed; bottom: 5.5rem; right: 1rem; width: 100px; height: 75px;
-    border-radius: 0.6rem; background: rgba(15,15,35,0.7);
-    border: 1px solid var(--glass-border); backdrop-filter: blur(10px); z-index: 80; overflow: hidden;
-  }
-  #minimap-viewport {
-    position: absolute; border: 1.5px solid var(--accent-blue); border-radius: 2px;
-    background: rgba(110,198,255,0.08); transition: all 0.1s;
-  }
-  .minimap-dot { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: var(--accent-pink); }
   .connection-status {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
     padding: 1rem 2rem; border-radius: 1rem; background: rgba(255,107,157,0.2);
@@ -235,27 +208,40 @@
     color: var(--accent-pink); font-size: 1rem; z-index: 9000; display: none; text-align: center;
   }
   .connection-status.show { display: block; }
+  .locate-btn {
+    position: fixed; bottom: 5.5rem; right: 1rem; z-index: 1000;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--glass); border: 1px solid var(--glass-border); backdrop-filter: blur(20px);
+    color: var(--text-light); font-size: 1.2rem; cursor: pointer;
+    display: none; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .locate-btn:hover { background: rgba(110,198,255,0.15); }
+  .locate-btn.show { display: flex; }
+
   @media (max-width: 600px) {
     .name-card { padding: 2rem 1.5rem; }
     .name-card h1 { font-size: 1.6rem; }
     .compose-box { padding: 0.5rem; }
-    #minimap { display: none; }
   }
 </style>
 </head>
 <body>
+
 <div id="name-screen">
   <div class="name-card">
     <div class="logo-icon">💬</div>
     <h1>Parlanonimo</h1>
-    <p>Drop anonymous messages on the map.<br>They vanish in 5 minutes. Speak freely.</p>
+    <p>Drop anonymous messages on the real map.<br>They vanish in 5 minutes. Speak freely.</p>
     <div class="name-input-wrap">
       <input type="text" id="name-input" placeholder="Choose a display name..." maxlength="20" autocomplete="off" spellcheck="false">
     </div>
     <button class="enter-btn" id="enter-btn" disabled>Enter the Map</button>
   </div>
 </div>
+
 <div class="connection-status" id="connection-status">Reconnecting...</div>
+
 <div id="top-bar" style="display:none;">
   <div class="top-brand"><span>💬</span> Parlanonimo</div>
   <div class="top-info">
@@ -264,8 +250,11 @@
     <div class="info-pill">💬 <span id="msg-count" class="val">0</span> live</div>
   </div>
 </div>
-<div id="map-container"><div id="map-world"></div></div>
-<div class="tap-hint" id="tap-hint" style="display:none;">Click anywhere on the map to drop a message</div>
+
+<div id="map"></div>
+<button class="locate-btn" id="locate-btn" title="Go to my location">📍</button>
+<div class="tap-hint" id="tap-hint" style="display:none;">Tap anywhere on the map to drop a message</div>
+
 <div id="compose-panel">
   <div class="compose-box">
     <div class="type-selector">
@@ -276,107 +265,196 @@
     <button class="send-btn" id="send-btn" title="Send">▲</button>
   </div>
 </div>
+
 <div class="cooldown-notice" id="cooldown-notice"></div>
-<div id="minimap" style="display:none;"><div id="minimap-viewport"></div></div>
+
 <script>
 (function(){
-  const MAP_W=4000,MAP_H=3000;
-  let userName='',bubbleElements={},bubbleCount=0,panX=0,panY=0;
-  let isDragging=false,dragStartX=0,dragStartY=0,panStartX=0,panStartY=0;
-  let hasDragged=false,pendingPos=null,selectedType='speech',cooldownInterval=null,cooldownEndTime=0;
-  const themes=['pink','blue','yellow','green','purple'];
-  const $=id=>document.getElementById(id);
-  const nameScreen=$('name-screen'),nameInput=$('name-input'),enterBtn=$('enter-btn');
-  const topBar=$('top-bar'),mapContainer=$('map-container'),mapWorld=$('map-world');
-  const composePanel=$('compose-panel'),msgInput=$('msg-input'),sendBtn=$('send-btn');
-  const cooldownNotice=$('cooldown-notice'),tapHint=$('tap-hint');
-  const minimap=$('minimap'),minimapViewport=$('minimap-viewport');
-  const displayNameEl=$('display-name'),msgCountEl=$('msg-count');
-  const userCountEl=$('user-count'),connectionStatus=$('connection-status');
+  let userName = '';
+  let bubbles = {};
+  let bubbleCount = 0;
+  let pendingLatLng = null;
+  let selectedType = 'speech';
+  let cooldownInterval = null;
+  let cooldownEndTime = 0;
+  let map;
 
-  const socket=io();
-  socket.on('connect',()=>{connectionStatus.classList.remove('show');});
-  socket.on('disconnect',()=>{connectionStatus.classList.add('show');});
-  socket.on('bubble:existing',(b)=>{createBubble(b.id,b.name,b.text,b.x,b.y,b.type,b.createdAt,b.remainingMs);});
-  socket.on('bubble:new',(b)=>{createBubble(b.id,b.name,b.text,b.x,b.y,b.type,b.createdAt,b.remainingMs);cooldownEndTime=Date.now()+300000;});
-  socket.on('bubble:cooldown',(d)=>{showCooldown(d.remainingSeconds*1000);});
-  socket.on('bubble:error',(d)=>{console.error('Server error:',d.message);});
-  socket.on('users:count',(c)=>{userCountEl.textContent=c;});
+  const themes = ['pink','blue','yellow','green','purple'];
+  const $ = id => document.getElementById(id);
 
-  nameInput.addEventListener('input',()=>{enterBtn.disabled=nameInput.value.trim().length===0;});
-  nameInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!enterBtn.disabled)startSession();});
-  enterBtn.addEventListener('click',startSession);
-  function startSession(){
-    userName=nameInput.value.trim();if(!userName)return;
-    nameScreen.classList.add('hidden');displayNameEl.textContent=userName;
-    topBar.style.display='flex';tapHint.style.display='block';minimap.style.display='block';
-    panX=-(MAP_W/2-window.innerWidth/2);panY=-(MAP_H/2-window.innerHeight/2);
-    updateMapPosition();
+  const nameScreen=$('name-screen'), nameInput=$('name-input'), enterBtn=$('enter-btn');
+  const topBar=$('top-bar'), composePanel=$('compose-panel'), msgInput=$('msg-input');
+  const sendBtn=$('send-btn'), cooldownNotice=$('cooldown-notice'), tapHint=$('tap-hint');
+  const displayNameEl=$('display-name'), msgCountEl=$('msg-count');
+  const userCountEl=$('user-count'), connectionStatus=$('connection-status');
+  const locateBtn=$('locate-btn');
+
+  // ─── SOCKET.IO ───
+  const socket = io();
+  socket.on('connect', () => connectionStatus.classList.remove('show'));
+  socket.on('disconnect', () => connectionStatus.classList.add('show'));
+  socket.on('bubble:existing', b => createBubble(b));
+  socket.on('bubble:new', b => { createBubble(b); cooldownEndTime = Date.now() + 300000; });
+  socket.on('bubble:cooldown', d => showCooldown(d.remainingSeconds * 1000));
+  socket.on('bubble:error', d => console.error('Server error:', d.message));
+  socket.on('users:count', c => { userCountEl.textContent = c; });
+
+  // ─── NAME ENTRY ───
+  nameInput.addEventListener('input', () => { enterBtn.disabled = nameInput.value.trim().length === 0; });
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !enterBtn.disabled) startSession(); });
+  enterBtn.addEventListener('click', startSession);
+
+  function startSession() {
+    userName = nameInput.value.trim();
+    if (!userName) return;
+    nameScreen.classList.add('hidden');
+    displayNameEl.textContent = userName;
+    topBar.style.display = 'flex';
+    tapHint.style.display = 'block';
+    locateBtn.classList.add('show');
+    initMap();
   }
 
-  mapContainer.addEventListener('mousedown',e=>{isDragging=true;hasDragged=false;dragStartX=e.clientX;dragStartY=e.clientY;panStartX=panX;panStartY=panY;});
-  window.addEventListener('mousemove',e=>{if(!isDragging)return;const dx=e.clientX-dragStartX,dy=e.clientY-dragStartY;if(Math.abs(dx)>5||Math.abs(dy)>5)hasDragged=true;panX=panStartX+dx;panY=panStartY+dy;clampPan();updateMapPosition();});
-  window.addEventListener('mouseup',()=>{isDragging=false;});
-  let touchId=null;
-  mapContainer.addEventListener('touchstart',e=>{if(e.touches.length===1){const t=e.touches[0];touchId=t.identifier;isDragging=true;hasDragged=false;dragStartX=t.clientX;dragStartY=t.clientY;panStartX=panX;panStartY=panY;}},{passive:true});
-  window.addEventListener('touchmove',e=>{if(!isDragging)return;for(const t of e.touches){if(t.identifier===touchId){const dx=t.clientX-dragStartX,dy=t.clientY-dragStartY;if(Math.abs(dx)>5||Math.abs(dy)>5)hasDragged=true;panX=panStartX+dx;panY=panStartY+dy;clampPan();updateMapPosition();}}},{passive:true});
-  window.addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===touchId){if(!hasDragged&&userName)handleMapClick(t.clientX,t.clientY);isDragging=false;}}});
-  mapContainer.addEventListener('click',e=>{if(hasDragged||!userName)return;if(e.target.closest('.bubble'))return;handleMapClick(e.clientX,e.clientY);});
+  // ─── MAP ───
+  function initMap() {
+    map = L.map('map', {
+      center: [45.7, 9.18],
+      zoom: 13,
+      zoomControl: false,
+      attributionControl: false
+    });
 
-  function handleMapClick(cx,cy){const mx=cx-panX,my=cy-panY;if(mx<0||mx>MAP_W||my<0||my>MAP_H)return;pendingPos={x:mx,y:my};openCompose();}
-  function clampPan(){panX=Math.max(-(MAP_W-window.innerWidth),Math.min(0,panX));panY=Math.max(-(MAP_H-window.innerHeight),Math.min(0,panY));}
-  function updateMapPosition(){mapWorld.style.transform='translate('+panX+'px,'+panY+'px)';updateMinimap();}
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd'
+    }).addTo(map);
 
-  function openCompose(){if(cooldownEndTime>Date.now()){showCooldown(cooldownEndTime-Date.now());return;}composePanel.classList.add('show');tapHint.classList.add('hidden');msgInput.focus();}
-  function closeCompose(){composePanel.classList.remove('show');msgInput.value='';pendingPos=null;}
-  document.querySelectorAll('.type-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');selectedType=btn.dataset.type;});});
-  msgInput.addEventListener('input',()=>{msgInput.style.height='auto';msgInput.style.height=Math.min(msgInput.scrollHeight,100)+'px';});
-  sendBtn.addEventListener('click',sendMessage);
-  msgInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
-  window.addEventListener('keydown',e=>{if(e.key==='Escape')closeCompose();});
+    L.control.attribution({ position: 'bottomleft', prefix: false })
+      .addAttribution('<a href="https://www.openstreetmap.org/copyright" style="color:#555">OSM</a> <a href="https://carto.com/" style="color:#555">CARTO</a>')
+      .addTo(map);
 
-  function sendMessage(){
-    const text=msgInput.value.trim();if(!text||!pendingPos)return;
-    socket.emit('bubble:create',{name:userName,text:text,x:pendingPos.x,y:pendingPos.y,type:selectedType});
+    map.on('click', (e) => {
+      pendingLatLng = e.latlng;
+      openCompose();
+    });
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 15),
+        () => {}
+      );
+    }
+  }
+
+  // ─── LOCATE ME ───
+  locateBtn.addEventListener('click', () => {
+    if (navigator.geolocation) {
+      locateBtn.textContent = '...';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { map.flyTo([pos.coords.latitude, pos.coords.longitude], 16, { duration: 1.5 }); locateBtn.textContent = '📍'; },
+        () => { locateBtn.textContent = '📍'; }
+      );
+    }
+  });
+
+  // ─── COMPOSE ───
+  function openCompose() {
+    if (cooldownEndTime > Date.now()) { showCooldown(cooldownEndTime - Date.now()); return; }
+    composePanel.classList.add('show');
+    tapHint.classList.add('hidden');
+    msgInput.focus();
+  }
+  function closeCompose() {
+    composePanel.classList.remove('show');
+    msgInput.value = '';
+    pendingLatLng = null;
+  }
+
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedType = btn.dataset.type;
+    });
+  });
+
+  msgInput.addEventListener('input', () => {
+    msgInput.style.height = 'auto';
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 100) + 'px';
+  });
+  sendBtn.addEventListener('click', sendMessage);
+  msgInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') closeCompose(); });
+
+  function sendMessage() {
+    const text = msgInput.value.trim();
+    if (!text || !pendingLatLng) return;
+    socket.emit('bubble:create', {
+      name: userName, text: text,
+      x: pendingLatLng.lat, y: pendingLatLng.lng,
+      type: selectedType
+    });
     closeCompose();
   }
 
-  function createBubble(id,name,text,x,y,type,createdAt,remainingMs){
-    if(bubbleElements[id]||!remainingMs||remainingMs<=0)return;
-    const theme=themes[hashStr(id)%themes.length],isTh=type==='thought';
-    const el=document.createElement('div');
-    el.className='bubble bubble-theme-'+theme+(isTh?' bubble-thought':'');
-    el.style.left=x+'px';el.style.top=y+'px';
-    const t=new Date(createdAt),ts=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
-    el.innerHTML='<div class="bubble-content"><div class="bubble-name">'+esc(name)+'</div><div class="bubble-text">'+esc(text)+'</div><div class="bubble-time">'+ts+'</div>'+(isTh?'':'<div class="bubble-tail"></div>')+'<div class="bubble-timer-bar" style="animation-duration:'+remainingMs+'ms"></div></div>';
-    mapWorld.appendChild(el);
-    const ft=setTimeout(()=>el.classList.add('fading'),Math.max(0,remainingMs-1000));
-    const rt=setTimeout(()=>removeBubble(id),remainingMs);
-    bubbleElements[id]={el,ft,rt};bubbleCount++;updateCount();updateMinimap();
+  // ─── BUBBLES ───
+  function createBubble(b) {
+    if (bubbles[b.id] || !b.remainingMs || b.remainingMs <= 0) return;
+    const theme = themes[hashStr(b.id) % themes.length];
+    const isThought = b.type === 'thought';
+    const t = new Date(b.createdAt);
+    const ts = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+
+    const html = '<div class="bubble-inner">' +
+      '<div class="bubble-name">' + esc(b.name) + '</div>' +
+      '<div class="bubble-text">' + esc(b.text) + '</div>' +
+      '<div class="bubble-time">' + ts + '</div>' +
+      '<div class="bubble-timer-bar" style="animation-duration:' + b.remainingMs + 'ms"></div></div>';
+
+    const popup = L.popup({
+      closeButton: false, autoClose: false, closeOnClick: false,
+      className: 'bubble-popup theme-' + theme + (isThought ? ' bubble-thought' : ''),
+      maxWidth: 280, minWidth: 140, autoPan: false
+    }).setLatLng([b.x, b.y]).setContent(html).addTo(map);
+
+    const popupEl = popup.getElement();
+    const fadeT = setTimeout(() => {
+      if (popupEl) { popupEl.style.transition = 'opacity 1s ease'; popupEl.style.opacity = '0'; }
+    }, Math.max(0, b.remainingMs - 1000));
+    const removeT = setTimeout(() => removeBubble(b.id), b.remainingMs);
+
+    bubbles[b.id] = { popup, fadeT, removeT };
+    bubbleCount++;
+    updateCount();
   }
-  function removeBubble(id){const e=bubbleElements[id];if(!e)return;clearTimeout(e.ft);clearTimeout(e.rt);e.el.remove();delete bubbleElements[id];bubbleCount--;updateCount();updateMinimap();}
-  function updateCount(){msgCountEl.textContent=Math.max(0,bubbleCount);}
-  function showCooldown(ms){
-    if(cooldownInterval)clearInterval(cooldownInterval);cooldownEndTime=Date.now()+ms;
-    cooldownNotice.classList.add('show');closeCompose();
-    const upd=()=>{const l=cooldownEndTime-Date.now();if(l<=0){cooldownNotice.classList.remove('show');clearInterval(cooldownInterval);return;}const m=Math.floor(l/60000),s=Math.floor((l%60000)/1000);cooldownNotice.textContent='⏳ Next message in '+m+':'+String(s).padStart(2,'0');};
-    upd();cooldownInterval=setInterval(upd,1000);
+
+  function removeBubble(id) {
+    const e = bubbles[id]; if (!e) return;
+    clearTimeout(e.fadeT); clearTimeout(e.removeT);
+    map.removeLayer(e.popup); delete bubbles[id];
+    bubbleCount--; updateCount();
   }
-  function updateMinimap(){
-    const sx=100/MAP_W,sy=75/MAP_H;
-    minimapViewport.style.width=window.innerWidth*sx+'px';minimapViewport.style.height=window.innerHeight*sy+'px';
-    minimapViewport.style.left=-panX*sx+'px';minimapViewport.style.top=-panY*sy+'px';
-    minimap.querySelectorAll('.minimap-dot').forEach(d=>d.remove());
-    Object.values(bubbleElements).forEach(b=>{const d=document.createElement('div');d.className='minimap-dot';d.style.left=parseFloat(b.el.style.left)*sx+'px';d.style.top=parseFloat(b.el.style.top)*sy+'px';minimap.appendChild(d);});
+  function updateCount() { msgCountEl.textContent = Math.max(0, bubbleCount); }
+
+  // ─── COOLDOWN ───
+  function showCooldown(ms) {
+    if (cooldownInterval) clearInterval(cooldownInterval);
+    cooldownEndTime = Date.now() + ms;
+    cooldownNotice.classList.add('show'); closeCompose();
+    const upd = () => {
+      const l = cooldownEndTime - Date.now();
+      if (l <= 0) { cooldownNotice.classList.remove('show'); clearInterval(cooldownInterval); return; }
+      const m = Math.floor(l/60000), s = Math.floor((l%60000)/1000);
+      cooldownNotice.textContent = '⏳ Next message in ' + m + ':' + String(s).padStart(2,'0');
+    };
+    upd(); cooldownInterval = setInterval(upd, 1000);
   }
-  (function addLandmarks(){
-    [{t:'Whispering Square',x:1800,y:1400},{t:'Gossip Garden',x:800,y:600},{t:'Echo Point',x:3000,y:800},{t:'Secret Alley',x:500,y:2200},{t:'Rumor River',x:2800,y:2400},{t:'Thought Terrace',x:1200,y:2600},{t:'Chatter Creek',x:3200,y:1600},{t:'Murmur Meadow',x:1600,y:400}].forEach(l=>{const e=document.createElement('div');e.className='landmark';e.textContent=l.t;e.style.left=l.x+'px';e.style.top=l.y+'px';mapWorld.appendChild(e);});
-  })();
-  function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
-  function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return Math.abs(h);}
-  window.addEventListener('resize',()=>{clampPan();updateMapPosition();});
+
+  function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  function hashStr(s) { let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;} return Math.abs(h); }
   nameInput.focus();
 })();
 </script>
 </body>
 </html>
+
