@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parlanonimo — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  :root {
+    --bg: #0d0d1a;
+    --bg-card: rgba(22, 33, 62, 0.85);
+    --border: rgba(255,255,255,0.07);
+    --pink: #ff6b9d;
+    --blue: #6ec6ff;
+    --yellow: #ffd93d;
+    --green: #6bff9d;
+    --purple: #c56bff;
+    --text: #e8e8f0;
+    --muted: #6e6e8a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Fredoka', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── LOGIN ─── */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+  }
+  #login-screen.hidden { display: none; }
+  .login-card {
+    text-align: center; padding: 2.5rem 2rem; border-radius: 1.5rem;
+    background: var(--bg-card); border: 1px solid var(--border);
+    backdrop-filter: blur(20px); max-width: 380px; width: 90%;
+  }
+  .login-card h1 { font-size: 1.5rem; margin-bottom: 0.3rem; color: var(--pink); }
+  .login-card p { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .login-card input {
+    width: 100%; padding: 0.8rem 1rem; border-radius: 0.8rem;
+    border: 1.5px solid var(--border); background: rgba(255,255,255,0.04);
+    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.95rem;
+    outline: none; margin-bottom: 1rem; text-align: center;
+  }
+  .login-card input:focus { border-color: var(--pink); }
+  .login-card button {
+    padding: 0.7rem 2rem; border: none; border-radius: 0.8rem;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    color: #fff; font-family: 'Fredoka', sans-serif; font-size: 1rem;
+    font-weight: 600; cursor: pointer;
+  }
+  .login-error { color: var(--pink); font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+
+  /* ─── DASHBOARD ─── */
+  #dashboard { display: none; }
+  #dashboard.show { display: block; }
+
+  .dash-header {
+    padding: 1.2rem 1.5rem;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .dash-header h1 { font-size: 1.2rem; font-weight: 600; }
+  .dash-header h1 span { color: var(--pink); }
+  .live-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); margin-right: 0.4rem;
+    animation: blink 2s ease infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ─── STATS ROW ─── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem; padding: 1.5rem;
+  }
+  .stat-card {
+    padding: 1.2rem; border-radius: 1rem;
+    background: var(--bg-card); border: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 2rem; font-weight: 700; margin-bottom: 0.2rem;
+  }
+  .stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-pink .stat-value { color: var(--pink); }
+  .stat-blue .stat-value { color: var(--blue); }
+  .stat-yellow .stat-value { color: var(--yellow); }
+  .stat-green .stat-value { color: var(--green); }
+  .stat-purple .stat-value { color: var(--purple); }
+
+  /* ─── MAIN GRID ─── */
+  .main-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1rem; padding: 0 1.5rem 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 1rem; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .panel-header {
+    padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--border);
+    font-weight: 600; font-size: 0.9rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-header .badge {
+    font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 1rem;
+    background: rgba(255,107,157,0.15); color: var(--pink);
+  }
+
+  /* ─── LIVE FEED ─── */
+  .feed-list {
+    flex: 1; overflow-y: auto; max-height: 400px; padding: 0.5rem;
+  }
+  .feed-item {
+    padding: 0.7rem 0.9rem; margin: 0.3rem 0; border-radius: 0.7rem;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03);
+    animation: feed-in 0.3s ease;
+    font-size: 0.88rem;
+  }
+  @keyframes feed-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+  .feed-name { font-weight: 600; margin-right: 0.4rem; }
+  .feed-meta {
+    font-size: 0.7rem; color: var(--muted); margin-top: 0.3rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .feed-type-speech { border-left: 3px solid var(--blue); }
+  .feed-type-thought { border-left: 3px solid var(--purple); }
+  .feed-empty {
+    padding: 2rem; text-align: center; color: var(--muted); font-size: 0.85rem;
+  }
+
+  /* ─── HEATMAP ─── */
+  #heatmap { height: 400px; border-radius: 0 0 1rem 1rem; }
+
+  /* ─── HISTORY TABLE ─── */
+  .history-section {
+    padding: 0 1.5rem 1.5rem;
+  }
+  .history-panel {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 1rem; overflow: hidden;
+  }
+  .history-controls {
+    padding: 0.8rem 1.1rem; border-bottom: 1px solid var(--border);
+    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+  }
+  .history-controls input {
+    flex: 1; min-width: 200px; padding: 0.5rem 0.8rem; border-radius: 0.6rem;
+    border: 1.5px solid var(--border); background: rgba(255,255,255,0.04);
+    color: var(--text); font-family: 'Fredoka', sans-serif; font-size: 0.85rem;
+    outline: none;
+  }
+  .history-controls input:focus { border-color: var(--blue); }
+  .history-controls select {
+    padding: 0.5rem 0.8rem; border-radius: 0.6rem;
+    border: 1.5px solid var(--border); background: rgba(255,255,255,0.04);
+    color: var(--text); font-family: 'Fredoka', sans-serif; font-size: 0.85rem;
+    outline: none;
+  }
+  .history-list {
+    max-height: 500px; overflow-y: auto;
+  }
+  .history-item {
+    padding: 0.65rem 1.1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+    display: flex; gap: 1rem; align-items: flex-start;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+  }
+  .history-item:hover { background: rgba(255,255,255,0.02); }
+  .history-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; color: var(--muted);
+    white-space: nowrap; min-width: 120px;
+    padding-top: 0.15rem;
+  }
+  .history-name {
+    font-weight: 600; color: var(--yellow);
+    white-space: nowrap; min-width: 80px;
+  }
+  .history-text { flex: 1; color: var(--text); word-break: break-word; }
+  .history-coords {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; color: var(--muted);
+    white-space: nowrap;
+  }
+  .history-empty {
+    padding: 2rem; text-align: center; color: var(--muted); font-size: 0.85rem;
+  }
+  .history-count {
+    font-size: 0.75rem; color: var(--muted); padding: 0.6rem 1.1rem;
+    border-top: 1px solid var(--border); text-align: right;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>🔒 Admin Dashboard</h1>
+    <p>Parlanonimo — enter admin password</p>
+    <input type="password" id="pw-input" placeholder="Password..." autofocus>
+    <br>
+    <button id="pw-btn" onclick="doLogin()">Enter</button>
+    <div class="login-error" id="login-error">Wrong password. Try again.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-header">
+    <h1><span>💬 Parlanonimo</span> — Admin</h1>
+    <div><span class="live-dot"></span> <span id="live-label">Connecting...</span></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card stat-blue">
+      <div class="stat-value" id="stat-online">0</div>
+      <div class="stat-label">Users Online</div>
+    </div>
+    <div class="stat-card stat-green">
+      <div class="stat-value" id="stat-active">0</div>
+      <div class="stat-label">Active Bubbles</div>
+    </div>
+    <div class="stat-card stat-yellow">
+      <div class="stat-value" id="stat-today">0</div>
+      <div class="stat-label">Messages Today</div>
+    </div>
+    <div class="stat-card stat-pink">
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">All Time Messages</div>
+    </div>
+    <div class="stat-card stat-purple">
+      <div class="stat-value" id="stat-peak">0</div>
+      <div class="stat-label">Peak Users</div>
+    </div>
+  </div>
+
+  <!-- LIVE FEED + HEATMAP -->
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-header">
+        Live Feed
+        <span class="badge" id="feed-badge">0 new</span>
+      </div>
+      <div class="feed-list" id="feed-list">
+        <div class="feed-empty">Waiting for messages...</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        Heatmap
+        <span class="badge" id="heat-badge">0 points</span>
+      </div>
+      <div id="heatmap"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-section">
+    <div class="history-panel">
+      <div class="panel-header">Message History (saved permanently)</div>
+      <div class="history-controls">
+        <input type="text" id="search-input" placeholder="Search messages or names...">
+        <select id="sort-select">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty">Loading...</div>
+      </div>
+      <div class="history-count" id="history-count"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  let adminPw = '';
+  let socket;
+  let heatmapLayer;
+  let heatmapMap;
+  let feedCount = 0;
+  let allHistory = [];
+
+  const $ = id => document.getElementById(id);
+
+  // ─── LOGIN ───
+  $('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  window.doLogin = function() {
+    adminPw = $('pw-input').value.trim();
+    if (!adminPw) return;
+
+    socket = io();
+    socket.on('connect', () => {
+      socket.emit('admin:join', adminPw);
+    });
+
+    socket.on('admin:joined', (res) => {
+      if (res.success) {
+        $('login-screen').classList.add('hidden');
+        $('dashboard').classList.add('show');
+        $('live-label').textContent = 'Live';
+        initDashboard();
+      } else {
+        $('login-error').style.display = 'block';
+        socket.disconnect();
+      }
+    });
+
+    socket.on('disconnect', () => {
+      $('live-label').textContent = 'Disconnected';
+    });
+    socket.on('connect', () => {
+      $('live-label').textContent = 'Live';
+    });
+
+    // Live feed
+    socket.on('admin:newMessage', (msg) => {
+      addToFeed(msg);
+      feedCount++;
+      $('feed-badge').textContent = feedCount + ' total';
+      // Also add to history view
+      allHistory.unshift(msg);
+      renderHistory();
+      // Refresh stats
+      loadStats();
+    });
+
+    socket.on('admin:userCount', (count) => {
+      $('stat-online').textContent = count;
+    });
+  };
+
+  function initDashboard() {
+    loadStats();
+    loadHistory();
+    initHeatmap();
+    // Refresh stats every 30 seconds
+    setInterval(loadStats, 30000);
+  }
+
+  // ─── STATS ───
+  async function loadStats() {
+    try {
+      const res = await fetch('/admin/api/stats?pw=' + encodeURIComponent(adminPw));
+      const data = await res.json();
+      $('stat-online').textContent = data.activeUsers;
+      $('stat-active').textContent = data.activeBubbles;
+      $('stat-today').textContent = data.totalToday;
+      $('stat-total').textContent = data.totalAllTime;
+      $('stat-peak').textContent = data.peakUsers;
+    } catch (err) {
+      console.error('Stats error:', err);
+    }
+  }
+
+  // ─── LIVE FEED ───
+  function addToFeed(msg) {
+    const list = $('feed-list');
+    // Remove empty state
+    const empty = list.querySelector('.feed-empty');
+    if (empty) empty.remove();
+
+    const time = new Date(msg.createdAt);
+    const ts = String(time.getHours()).padStart(2,'0') + ':' +
+               String(time.getMinutes()).padStart(2,'0') + ':' +
+               String(time.getSeconds()).padStart(2,'0');
+
+    const item = document.createElement('div');
+    item.className = 'feed-item feed-type-' + msg.type;
+    item.innerHTML =
+      '<div>' +
+        '<span class="feed-name">' + esc(msg.name) + '</span> ' +
+        (msg.type === 'thought' ? '💭 ' : '💬 ') +
+        '<span>' + esc(msg.text) + '</span>' +
+        '<div class="feed-meta">' + ts + ' · [' + Number(msg.x).toFixed(4) + ', ' + Number(msg.y).toFixed(4) + ']</div>' +
+      '</div>';
+
+    list.insertBefore(item, list.firstChild);
+
+    // Keep max 100 in feed
+    while (list.children.length > 100) {
+      list.removeChild(list.lastChild);
+    }
+
+    // Add to heatmap
+    if (heatmapLayer && msg.x && msg.y) {
+      heatmapLayer.addLatLng([msg.x, msg.y, 1]);
+      $('heat-badge').textContent = (parseInt($('heat-badge').textContent) + 1) + ' points';
+    }
+  }
+
+  // ─── HEATMAP ───
+  function initHeatmap() {
+    heatmapMap = L.map('heatmap', {
+      center: [45.7, 9.18],
+      zoom: 10,
+      zoomControl: false,
+      attributionControl: false
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19, subdomains: 'abcd'
+    }).addTo(heatmapMap);
+
+    heatmapLayer = L.heatLayer([], {
+      radius: 25, blur: 20, maxZoom: 17,
+      gradient: { 0.2: '#6ec6ff', 0.4: '#6bff9d', 0.6: '#ffd93d', 0.8: '#ff6b9d', 1: '#c56bff' }
+    }).addTo(heatmapMap);
+
+    // Load existing heatmap data
+    loadHeatmap();
+  }
+
+  async function loadHeatmap() {
+    try {
+      const res = await fetch('/admin/api/heatmap?pw=' + encodeURIComponent(adminPw));
+      const points = await res.json();
+      const heatData = points.map(p => [p.lat, p.lng, 1]);
+      heatmapLayer.setLatLngs(heatData);
+      $('heat-badge').textContent = points.length + ' points';
+
+      // Auto-fit to data if we have points
+      if (heatData.length > 0) {
+        const bounds = L.latLngBounds(heatData.map(p => [p[0], p[1]]));
+        heatmapMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+      }
+    } catch (err) {
+      console.error('Heatmap error:', err);
+    }
+  }
+
+  // ─── HISTORY ───
+  async function loadHistory() {
+    try {
+      const res = await fetch('/admin/api/history?pw=' + encodeURIComponent(adminPw));
+      allHistory = await res.json();
+      allHistory.reverse(); // newest first
+      renderHistory();
+    } catch (err) {
+      console.error('History error:', err);
+      $('history-list').innerHTML = '<div class="history-empty">Failed to load history</div>';
+    }
+  }
+
+  function renderHistory() {
+    const search = $('search-input').value.toLowerCase().trim();
+    const sort = $('sort-select').value;
+
+    let filtered = allHistory;
+    if (search) {
+      filtered = filtered.filter(m =>
+        m.name.toLowerCase().includes(search) ||
+        m.text.toLowerCase().includes(search)
+      );
+    }
+
+    if (sort === 'oldest') {
+      filtered = [...filtered].reverse();
+    }
+
+    const list = $('history-list');
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="history-empty">' + (search ? 'No messages match your search' : 'No messages yet') + '</div>';
+      $('history-count').textContent = '';
+      return;
+    }
+
+    // Render max 500 for performance
+    const shown = filtered.slice(0, 500);
+    let html = '';
+    shown.forEach(m => {
+      const d = new Date(m.createdAt);
+      const dateStr = String(d.getDate()).padStart(2,'0') + '/' +
+                      String(d.getMonth()+1).padStart(2,'0') + '/' +
+                      d.getFullYear() + ' ' +
+                      String(d.getHours()).padStart(2,'0') + ':' +
+                      String(d.getMinutes()).padStart(2,'0') + ':' +
+                      String(d.getSeconds()).padStart(2,'0');
+      html += '<div class="history-item">' +
+        '<div class="history-time">' + dateStr + '</div>' +
+        '<div class="history-name">' + esc(m.name) + '</div>' +
+        '<div class="history-text">' + (m.type === 'thought' ? '💭 ' : '💬 ') + esc(m.text) + '</div>' +
+        '<div class="history-coords">[' + Number(m.x).toFixed(3) + ', ' + Number(m.y).toFixed(3) + ']</div>' +
+      '</div>';
+    });
+    list.innerHTML = html;
+    $('history-count').textContent = 'Showing ' + shown.length + ' of ' + filtered.length + ' messages (' + allHistory.length + ' total)';
+  }
+
+  $('search-input').addEventListener('input', renderHistory);
+  $('sort-select').addEventListener('change', renderHistory);
+
+  // ─── UTILS ───
+  function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+})();
+</script>
+</body>
+</html>
+
