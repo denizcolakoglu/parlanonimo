@@ -152,7 +152,7 @@ io.on('connection', async (socket) => {
       const bubble = {
         id: socket.id + '-' + Date.now(),
         name: String(data.name).substring(0, 20).trim(),
-        text: String(data.text).substring(0, 280).trim(),
+        text: String(data.text).substring(0, 110).trim(),
         x: lat,
         y: lng,
         type: data.type === 'thought' ? 'thought' : 'speech',
@@ -208,68 +208,72 @@ server.listen(PORT, () => {
 // Plants sample bubbles so new visitors see an active map
 
 const seedData = [
-  // ── PARIS ──
-  { name: 'Flaneur', text: 'The view from Sacre-Coeur at sunset is unbeatable', x: 48.8867, y: 2.3431, type: 'speech' },
-  { name: 'Amelie', text: 'Best croissant in Paris? The tiny bakery on Rue des Martyrs. You are welcome.', x: 48.8782, y: 2.3387, type: 'speech' },
-  { name: 'Noctis', text: 'I think the Seine is more beautiful at 3am than at noon...', x: 48.8566, y: 2.3522, type: 'thought' },
-  { name: 'Voltaire', text: 'Just saw someone propose on Pont des Arts. She said yes!', x: 48.8583, y: 2.3374, type: 'speech' },
-  { name: 'Lumiere', text: 'If you skip the Louvre and go to Musee d Orsay instead, you will thank me later', x: 48.8600, y: 2.3266, type: 'speech' },
-  { name: 'Reve', text: 'What if Paris was always meant to be a feeling, not a place?', x: 48.8530, y: 2.3499, type: 'thought' },
-  { name: 'Minuit', text: 'The jazz bar hidden behind the red door in Le Marais... unforgettable night', x: 48.8598, y: 2.3624, type: 'speech' },
-  { name: 'Ciel', text: 'I come to this bench every Tuesday. Nobody knows. It is my secret spot.', x: 48.8462, y: 2.3372, type: 'thought' },
+  // ── PARIS (French) ──
+  { name: 'Flaneur', text: 'La vue depuis le Sacre-Coeur au coucher du soleil, rien ne la bat', x: 48.8867, y: 2.3431, type: 'speech' },
+  { name: 'Amelie', text: 'Meilleur croissant de Paris? La petite boulangerie rue des Martyrs', x: 48.8782, y: 2.3387, type: 'speech' },
+  { name: 'Noctis', text: 'Je crois que la Seine est plus belle a 3h du matin...', x: 48.8566, y: 2.3522, type: 'thought' },
+  { name: 'Voltaire', text: 'Je viens de voir une demande en mariage sur le Pont des Arts. Elle a dit oui!', x: 48.8583, y: 2.3374, type: 'speech' },
+  { name: 'Lumiere', text: 'Oubliez le Louvre, allez au Musee d Orsay. Vous me remercierez.', x: 48.8600, y: 2.3266, type: 'speech' },
+  { name: 'Reve', text: 'Et si Paris etait un sentiment plutot qu un endroit?', x: 48.8530, y: 2.3499, type: 'thought' },
+  { name: 'Minuit', text: 'Le bar jazz cache derriere la porte rouge dans le Marais... inoubliable', x: 48.8598, y: 2.3624, type: 'speech' },
+  { name: 'Ciel', text: 'Je viens sur ce banc chaque mardi. Personne ne le sait.', x: 48.8462, y: 2.3372, type: 'thought' },
 
-  // ── BERLIN ──
+  // ── BERLIN (English) ──
   { name: 'Wanderer', text: 'The street art in Kreuzberg keeps getting better every week', x: 52.4988, y: 13.4200, type: 'speech' },
   { name: 'Nacht', text: 'Does anyone else feel like Berlin never truly sleeps?', x: 52.5200, y: 13.4050, type: 'thought' },
-  { name: 'Spree', text: 'Curry 36 is overrated. Fight me. The real currywurst is at Konnopke.', x: 52.5390, y: 13.4133, type: 'speech' },
-  { name: 'Klang', text: 'Heard the most incredible busker at Warschauer Strasse today', x: 52.5057, y: 13.4490, type: 'speech' },
-  { name: 'Mauer', text: 'Walking past the East Side Gallery still gives me chills every single time', x: 52.5053, y: 13.4396, type: 'thought' },
-  { name: 'Fuchs', text: 'Secret tip: the rooftop bar on Torstrasse has no sign but the best view of the TV tower', x: 52.5290, y: 13.3958, type: 'speech' },
-  { name: 'Nebel', text: 'I moved here 5 years ago and still discover new neighborhoods', x: 52.4870, y: 13.4250, type: 'thought' },
-  { name: 'Baer', text: 'Free piano in Mauerpark on Sundays. Just show up and play. Pure magic.', x: 52.5437, y: 13.4019, type: 'speech' },
+  { name: 'Spree', text: 'Curry 36 is overrated. The real currywurst is at Konnopke.', x: 52.5390, y: 13.4133, type: 'speech' },
+  { name: 'Klang', text: 'Heard the most incredible busker at Warschauer today', x: 52.5057, y: 13.4490, type: 'speech' },
+  { name: 'Mauer', text: 'The East Side Gallery still gives me chills every time', x: 52.5053, y: 13.4396, type: 'thought' },
+  { name: 'Fuchs', text: 'Secret rooftop bar on Torstrasse. No sign. Best view of TV tower.', x: 52.5290, y: 13.3958, type: 'speech' },
+  { name: 'Nebel', text: 'Moved here 5 years ago. Still discovering new neighborhoods.', x: 52.4870, y: 13.4250, type: 'thought' },
+  { name: 'Baer', text: 'Free piano in Mauerpark on Sundays. Just show up and play.', x: 52.5437, y: 13.4019, type: 'speech' },
 
-  // ── MILAN ──
-  { name: 'Ombra', text: 'The aperitivo at Navigli on Friday evening is the best therapy', x: 45.4530, y: 9.1770, type: 'speech' },
-  { name: 'Nebbia', text: 'I think Milan is the most underrated city in Europe. Seriously.', x: 45.4642, y: 9.1900, type: 'thought' },
-  { name: 'Duomo', text: 'Climbed to the rooftop of the Duomo today. Why did I wait 10 years to do this?', x: 45.4641, y: 9.1919, type: 'speech' },
-  { name: 'Freccia', text: 'The best gelato in Milano is NOT where tourists go. Try Via Savona.', x: 45.4510, y: 9.1660, type: 'speech' },
-  { name: 'Silenzio', text: 'Sometimes I sit in the Biblioteca Ambrosiana just to think in silence', x: 45.4634, y: 9.1870, type: 'thought' },
-  { name: 'Sole', text: 'Spring in Parco Sempione is when Milan becomes a different city entirely', x: 45.4726, y: 9.1788, type: 'speech' },
-  { name: 'Eco', text: 'The vintage market in Porta Genova every last Sunday... hidden gem', x: 45.4490, y: 9.1700, type: 'speech' },
-  { name: 'Luna', text: 'I left my heart somewhere between Brera and Porta Nuova', x: 45.4730, y: 9.1880, type: 'thought' },
+  // ── MILAN (Italian) ──
+  { name: 'Peppe', text: 'Ti amo Marco', x: 45.4641, y: 9.1919, type: 'speech' },
+  { name: 'Salvatore', text: 'Inter e\' merda', x: 45.4780, y: 9.2040, type: 'speech' },
+  { name: 'hippo', text: 'Dove si mangia il miglior risotto?', x: 45.4530, y: 9.1770, type: 'speech' },
+  { name: 'Ombra', text: 'L\'aperitivo ai Navigli il venerdi sera e\' la miglior terapia', x: 45.4510, y: 9.1740, type: 'speech' },
+  { name: 'Nebbia', text: 'Milano e\' la citta piu sottovalutata d\'Europa. Davvero.', x: 45.4642, y: 9.1900, type: 'thought' },
+  { name: 'Freccia', text: 'Il miglior gelato di Milano NON e\' dove vanno i turisti', x: 45.4510, y: 9.1660, type: 'speech' },
+  { name: 'Silenzio', text: 'A volte mi siedo alla Biblioteca Ambrosiana solo per pensare', x: 45.4634, y: 9.1870, type: 'thought' },
+  { name: 'Sole', text: 'Primavera a Parco Sempione: Milano diventa un\'altra citta', x: 45.4726, y: 9.1788, type: 'speech' },
 ];
 
 async function seedMessages() {
   try {
     // Check how many active bubbles exist
     const existingKeys = await redis.keys('bubble:*');
-    if (existingKeys.length >= 8) {
+    if (existingKeys.length >= 6) {
       console.log('Map has ' + existingKeys.length + ' active bubbles, skipping seed.');
     } else {
       console.log('Seeding map with sample messages...');
       await plantBatch();
     }
-    // Keep planting new ones periodically so the map is never empty
+    // Check every 5 minutes, only plant if map is nearly empty
     setInterval(async () => {
-      const keys = await redis.keys('bubble:*');
-      if (keys.length < 6) {
-        await plantBatch();
+      try {
+        const keys = await redis.keys('bubble:*');
+        if (keys.length < 3) {
+          await plantBatch();
+        }
+      } catch (err) {
+        console.error('Seed interval error:', err.message);
       }
-    }, 120000); // check every 2 minutes
+    }, 300000); // check every 5 minutes
   } catch (err) {
     console.error('Seed error:', err.message);
   }
 }
 
 async function plantBatch() {
-  // Pick 8-12 random messages from the seed data
+  // Only plant 3-5 messages per batch (not 8-12) to keep it sparse and natural
   const shuffled = [...seedData].sort(() => Math.random() - 0.5);
-  const batch = shuffled.slice(0, 8 + Math.floor(Math.random() * 5));
+  const batch = shuffled.slice(0, 3 + Math.floor(Math.random() * 3));
 
   for (const msg of batch) {
     // Add slight random offset so they are not always in the exact same spot
-    const jitterLat = (Math.random() - 0.5) * 0.005;
-    const jitterLng = (Math.random() - 0.5) * 0.005;
+    const jitterLat = (Math.random() - 0.5) * 0.008;
+    const jitterLng = (Math.random() - 0.5) * 0.008;
 
     const bubble = {
       id: 'seed-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
@@ -281,14 +285,14 @@ async function plantBatch() {
       createdAt: Date.now()
     };
 
-    // Random TTL between 2-5 minutes so they expire at different times
-    const ttl = 120 + Math.floor(Math.random() * 180);
+    // Random TTL between 3-5 minutes so they stay longer and don't respawn fast
+    const ttl = 180 + Math.floor(Math.random() * 120);
     await redis.setEx('bubble:' + bubble.id, ttl, JSON.stringify(bubble));
 
     // Broadcast to any connected users
     bubble.remainingMs = ttl * 1000;
     io.emit('bubble:new', bubble);
   }
-  console.log('Planted ' + batch.length + ' seed bubbles across Paris, Berlin & Milan');
+  console.log('Planted ' + batch.length + ' seed bubbles');
 }
 
