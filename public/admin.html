@@ -194,10 +194,11 @@
   }
   .history-text { flex: 1; color: var(--text); word-break: break-word; }
   .history-coords {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.68rem; color: var(--muted);
-    white-space: nowrap;
+    font-size: 0.72rem; color: var(--muted);
+    white-space: nowrap; min-width: 140px; text-align: right;
   }
+  .feed-location { color: var(--blue); opacity: 0.7; }
+  .location-loading { color: var(--muted); font-style: italic; }
   .history-empty {
     padding: 2rem; text-align: center; color: var(--muted); font-size: 0.85rem;
   }
@@ -392,15 +393,22 @@
 
     const item = document.createElement('div');
     item.className = 'feed-item feed-type-' + msg.type;
+    const locId = 'feed-loc-' + Date.now() + Math.random().toString(36).substr(2,4);
     item.innerHTML =
       '<div>' +
         '<span class="feed-name">' + esc(msg.name) + '</span> ' +
         (msg.type === 'thought' ? '💭 ' : '💬 ') +
         '<span>' + esc(msg.text) + '</span>' +
-        '<div class="feed-meta">' + ts + ' · [' + Number(msg.x).toFixed(4) + ', ' + Number(msg.y).toFixed(4) + ']</div>' +
+        '<div class="feed-meta">' + ts + ' · 📍 <span id="' + locId + '" class="feed-location location-loading">locating...</span></div>' +
       '</div>';
 
     list.insertBefore(item, list.firstChild);
+
+    // Resolve place name asynchronously
+    getPlaceName(msg.x, msg.y).then(name => {
+      const el = document.getElementById(locId);
+      if (el) { el.textContent = name; el.classList.remove('location-loading'); }
+    });
 
     // Keep max 100 in feed
     while (list.children.length > 100) {
@@ -493,7 +501,7 @@
     // Render max 500 for performance
     const shown = filtered.slice(0, 500);
     let html = '';
-    shown.forEach(m => {
+    shown.forEach((m, i) => {
       const d = new Date(m.createdAt);
       const dateStr = String(d.getDate()).padStart(2,'0') + '/' +
                       String(d.getMonth()+1).padStart(2,'0') + '/' +
@@ -501,19 +509,92 @@
                       String(d.getHours()).padStart(2,'0') + ':' +
                       String(d.getMinutes()).padStart(2,'0') + ':' +
                       String(d.getSeconds()).padStart(2,'0');
+      const locId = 'hist-loc-' + i;
       html += '<div class="history-item">' +
         '<div class="history-time">' + dateStr + '</div>' +
         '<div class="history-name">' + esc(m.name) + '</div>' +
         '<div class="history-text">' + (m.type === 'thought' ? '💭 ' : '💬 ') + esc(m.text) + '</div>' +
-        '<div class="history-coords">[' + Number(m.x).toFixed(3) + ', ' + Number(m.y).toFixed(3) + ']</div>' +
+        '<div class="history-coords">📍 <span id="' + locId + '" class="location-loading">...</span></div>' +
       '</div>';
     });
     list.innerHTML = html;
     $('history-count').textContent = 'Showing ' + shown.length + ' of ' + filtered.length + ' messages (' + allHistory.length + ' total)';
+
+    // Resolve place names for visible history items (first 50 immediately, rest lazily)
+    shown.slice(0, 50).forEach((m, i) => {
+      getPlaceName(m.x, m.y).then(name => {
+        const el = document.getElementById('hist-loc-' + i);
+        if (el) { el.textContent = name; el.classList.remove('location-loading'); }
+      });
+    });
+    // Load rest after a delay
+    if (shown.length > 50) {
+      setTimeout(() => {
+        shown.slice(50).forEach((m, i) => {
+          getPlaceName(m.x, m.y).then(name => {
+            const el = document.getElementById('hist-loc-' + (i + 50));
+            if (el) { el.textContent = name; el.classList.remove('location-loading'); }
+          });
+        });
+      }, 5000);
+    }
   }
 
   $('search-input').addEventListener('input', renderHistory);
   $('sort-select').addEventListener('change', renderHistory);
+
+  // ─── REVERSE GEOCODING ───
+  const locationCache = {};
+  const geocodeQueue = [];
+  let geocodeRunning = false;
+
+  async function getPlaceName(lat, lng) {
+    const key = Number(lat).toFixed(4) + ',' + Number(lng).toFixed(4);
+    if (locationCache[key]) return locationCache[key];
+
+    return new Promise((resolve) => {
+      geocodeQueue.push({ lat, lng, key, resolve });
+      processGeoQueue();
+    });
+  }
+
+  async function processGeoQueue() {
+    if (geocodeRunning || geocodeQueue.length === 0) return;
+    geocodeRunning = true;
+
+    while (geocodeQueue.length > 0) {
+      const { lat, lng, key, resolve } = geocodeQueue.shift();
+      if (locationCache[key]) { resolve(locationCache[key]); continue; }
+
+      try {
+        const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=16&addressdetails=1', {
+          headers: { 'Accept-Language': 'en' }
+        });
+        const data = await res.json();
+        let name = '';
+        if (data.address) {
+          const a = data.address;
+          const parts = [];
+          if (a.road || a.pedestrian || a.neighbourhood) parts.push(a.road || a.pedestrian || a.neighbourhood);
+          if (a.suburb || a.quarter) parts.push(a.suburb || a.quarter);
+          if (a.city || a.town || a.village) parts.push(a.city || a.town || a.village);
+          name = parts.join(', ') || data.display_name.split(',').slice(0, 3).join(',');
+        } else {
+          name = Number(lat).toFixed(3) + ', ' + Number(lng).toFixed(3);
+        }
+        locationCache[key] = name;
+        resolve(name);
+      } catch (err) {
+        const fallback = Number(lat).toFixed(3) + ', ' + Number(lng).toFixed(3);
+        locationCache[key] = fallback;
+        resolve(fallback);
+      }
+
+      // Nominatim rate limit: 1 request per second
+      if (geocodeQueue.length > 0) await new Promise(r => setTimeout(r, 1100));
+    }
+    geocodeRunning = false;
+  }
 
   // ─── UTILS ───
   function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
